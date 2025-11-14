@@ -4,7 +4,11 @@ import cookieParser from "cookie-parser";
 import "dotenv/config";
 
 import authRoutes from "./routes/auth.routes.js";
-import { connectDB } from "./db.js";
+import restaurantRoutes from "./routes/restaurants.routes.js";
+import ordersRoutes from "./routes/orders.routes.js";
+import paymentsRoutes from "./routes/payments.routes.js";
+
+import { connectDB } from "./database/db.js";
 
 const app = express();
 const PORT = process.env.PORT;
@@ -19,10 +23,9 @@ app.use(
 );
 
 app.use("/api/auth", authRoutes);
-
-app.get("/", (req, res) => {
-  res.send("Hello, World!");
-});
+app.use("/api/restaurants", restaurantRoutes);
+app.use("/api/orders", ordersRoutes);
+app.use("/api/payments", paymentsRoutes);
 
 app.listen(PORT, () => {
   try {
