@@ -1,10 +1,22 @@
-import express from 'express';
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import "dotenv/config";
 
 const app = express();
-const PORT = process.env.PORT || 9001;
+const PORT = process.env.PORT;
 
-app.get('/', (req, res) => {
-  res.send('Hello, World!');
+app.use(express.json());
+app.use(cookieParser());
+app.use(
+  cors({
+    origin: ["http://localhost:3000"],
+    credentials: true,
+  })
+);
+
+app.get("/", (req, res) => {
+  res.send("Hello, World!");
 });
 
 app.listen(PORT, () => {
