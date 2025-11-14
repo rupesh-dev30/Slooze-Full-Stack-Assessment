@@ -123,3 +123,30 @@ export async function getOrder(req: AuthRequest, res: Response) {
     res.status(500).json({ message: "Server error", error });
   }
 }
+
+export async function listOrders(req: AuthRequest, res: Response) {
+  try {
+    const user = req.user!;
+    const role = user.role;
+
+    let filter: any = {};
+
+    if (role === "ADMIN") {
+      filter = {};
+    }
+
+    if (role === "MANAGER") {
+      filter.country = user.country;
+    }
+
+    if (role === "MEMBER") {
+      filter.userId = user._id;
+    }
+
+    const orders = await OrderModel.find(filter).sort({ createdAt: -1 }).lean();
+
+    res.json({ orders });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", err });
+  }
+}

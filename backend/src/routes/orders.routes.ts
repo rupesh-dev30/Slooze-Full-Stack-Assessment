@@ -5,6 +5,7 @@ import {
   checkoutOrder,
   createOrder,
   getOrder,
+  listOrders,
 } from "../controllers/orderController.js";
 import OrderModel from "../models/Order.model.js";
 import { permit } from "../middleware/rbac.middleware.js";
@@ -13,6 +14,11 @@ import { restrictByCountry } from "../middleware/country.middleware.js";
 const router = Router();
 
 router.post("/", authMiddleware, createOrder);
+router.get(
+  "/",
+  authMiddleware,
+  listOrders
+);
 
 const orderCountry = async (req: Request) => {
   const id = req.params.id;
