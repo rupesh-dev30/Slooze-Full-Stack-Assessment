@@ -3,6 +3,9 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import "dotenv/config";
 
+import authRoutes from "./routes/auth.routes.js";
+import { connectDB } from "./db.js";
+
 const app = express();
 const PORT = process.env.PORT;
 
@@ -15,10 +18,17 @@ app.use(
   })
 );
 
+app.use("/api/auth", authRoutes);
+
 app.get("/", (req, res) => {
   res.send("Hello, World!");
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  try {
+    connectDB();
+    console.log(`Server is running on http://localhost:${PORT}`);
+  } catch (error) {
+    console.error("Failed to start server:", error);
+  }
 });

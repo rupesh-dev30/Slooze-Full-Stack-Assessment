@@ -22,11 +22,11 @@ export async function authMiddleware(
 
     const payload = verifyToken(token);
 
-    if (typeof payload === "string" || payload === null || typeof payload !== "object" || !("id" in payload)) {
+    if (!payload || !payload.userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const user = await UserModel.findById((payload as { id: string }).id).select("-password");
+    const user = await UserModel.findById(payload.userId).select("-password");
 
     if (!user) {
       return res.status(401).json({ message: "Unauthorized" });
