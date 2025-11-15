@@ -23,9 +23,15 @@ interface Restaurant {
   cuisine?: string;
 }
 
+interface CartItem {
+  menuItemId: string;
+  quantity: number;
+}
+
 const Restaurants = () => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
     const fetchRestaurants = async () => {
@@ -40,7 +46,25 @@ const Restaurants = () => {
       }
     };
 
+    const fetchCartCount = async () => {
+      try {
+        const res = await api("/api/cart");
+        const items = res.cart?.items || [];
+        const count = items.reduce(
+          (sum: number, item: CartItem) => sum + item.quantity,
+          0
+        );
+        setCartCount(count);
+      } catch (err) {
+        if (!err) {
+          console.error("Cart load failed:", err);
+        }
+        setCartCount(0);
+      }
+    };
+
     fetchRestaurants();
+    fetchCartCount();
   }, []);
 
   if (loading) {
@@ -53,7 +77,8 @@ const Restaurants = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar cartItemsCount={0} />
+      {/* ✅ Now passes actual count */}
+      <Navbar cartItemsCount={cartCount} />
 
       <div className="max-w-[1440px] mx-auto px-6 py-12">
         <div className="mb-10 text-center md:text-left">
