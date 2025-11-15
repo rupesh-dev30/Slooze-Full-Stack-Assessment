@@ -9,13 +9,25 @@ export async function createOrder(req: AuthRequest, res: Response) {
     const user = req.user;
     const { restaurantId, items } = req.body;
 
-    if (
-      !restaurantId ||
-      !items ||
-      !Array.isArray(items) ||
-      items.length === 0
-    ) {
+    if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "Invalid order data" });
+    }
+
+    // ✅ Auto-fetch restaurant from first menu item if not provided
+    let restaurant = null;
+    let finalRestaurantId = restaurantId;
+
+    if (!finalRestaurantId) {
+      const firstMenuItem = await MenuItemModel.findById(items[0].menuItemId);
+      if (!firstMenuItem) {
+        return res.status(400).json({ message: "Invalid menu item" });
+      }
+      finalRestaurantId = firstMenuItem.restaurantId;
+    }
+
+    restaurant = await RestaurantModel.findById(finalRestaurantId).lean();
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
     }
 
     const menuItemIds = items.map((item: any) => item.menuItemId);
@@ -27,11 +39,9 @@ export async function createOrder(req: AuthRequest, res: Response) {
       const docs = menuDocs.find(
         (doc) => doc._id.toString() === item.menuItemId
       );
-
       if (!docs) {
         throw new Error(`Menu item with ID ${item.menuItemId} not found`);
       }
-
       return {
         menuItemId: docs._id,
         name: docs.name,
@@ -45,24 +55,16 @@ export async function createOrder(req: AuthRequest, res: Response) {
       0
     );
 
-    const restaurant = await RestaurantModel.findById(restaurantId).lean();
-    if (!restaurant) {
-      return res.status(404).json({ message: "Restaurant not found" });
-    }
-
     const order = await OrderModel.create({
       userId: user?._id,
-      restaurantId,
+      restaurantId: finalRestaurantId,
       items: orderItems,
       totalAmount,
       country: restaurant.country,
       status: "CREATED",
     });
 
-    res.status(201).json({
-      message: "Order created successfully",
-      order,
-    });
+    res.status(201).json({ message: "Order created successfully", order });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
@@ -76,15 +78,33 @@ export async function checkoutOrder(req: AuthRequest, res: Response) {
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
-    if (order.status !== "CREATED") {
-      return res.status(400).json({ message: "Order cannot be checked out" });
+
+    // Prevent members from marking as paid
+    if (req.user?.role === "MEMBER") {
+      return res
+        .status(403)
+        .json({ message: "Members cannot mark orders as paid" });
     }
 
+    // Prevent already paid or cancelled orders
+    if (order.status !== "CREATED") {
+      return res
+        .status(400)
+        .json({
+          message: `Order cannot be marked as paid. Current status: ${order.status}`,
+        });
+    }
+
+    // ✅ Mark as paid
     order.status = "PAID";
     await order.save();
 
-    res.json({ message: "Order checked out successfully", order });
+    res.status(200).json({
+      message: "Order checked out successfully",
+      order,
+    });
   } catch (error) {
+    console.error("Checkout error:", error);
     res.status(500).json({ message: "Server error", error });
   }
 }

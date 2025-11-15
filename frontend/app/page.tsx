@@ -36,7 +36,7 @@ const App = () => {
           </p>
 
           <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/auth">
+            <Link href="/restaurants">
               <Button
                 size="lg"
                 className="text-lg px-8 bg-white text-primary font-semibold hover:bg-white/90 transition"
@@ -116,7 +116,7 @@ const App = () => {
           <p className="text-base md:text-lg mb-10 text-white/90 max-w-[650px] mx-auto">
             Join thousands of satisfied customers enjoying their favorite meals daily.
           </p>
-          <Link href="/auth">
+          <Link href="/sign-in">
             <Button
               size="lg"
               className="text-lg px-10 py-6 bg-white text-primary font-semibold hover:bg-white/90 transition"

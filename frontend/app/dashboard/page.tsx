@@ -7,12 +7,15 @@ import { toast } from "sonner";
 import Navbar from "@/components/shared/Navbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   ShoppingBag,
   DollarSign,
   BarChart3,
   Shield,
   Loader2,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 
@@ -31,21 +34,13 @@ interface Order {
   createdAt: string;
 }
 
-interface DashboardStats {
-  totalOrders: number;
-  paidOrders: number;
-  cancelledOrders: number;
-  totalRevenue: number;
-  paymentMethods: number;
-}
-
 const Dashboard = () => {
   const router = useRouter();
-
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [paymentsCount, setPaymentsCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState<string | null>(null);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -76,14 +71,37 @@ const Dashboard = () => {
     loadDashboard();
   }, [router]);
 
-  if (loading) {
+  const handleUpdateStatus = async (
+    orderId: string,
+    newStatus: "PAID" | "CANCELLED"
+  ) => {
+    try {
+      setUpdating(orderId);
+      const endpoint =
+        newStatus === "PAID"
+          ? `/api/orders/${orderId}/checkout`
+          : `/api/orders/${orderId}/cancel`;
+      await api(endpoint, { method: "POST" });
+
+      setOrders((prev) =>
+        prev.map((o) => (o._id === orderId ? { ...o, status: newStatus } : o))
+      );
+
+      toast.success(`Order marked as ${newStatus}`);
+    } catch {
+      toast.error("Failed to update order status");
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  if (loading)
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background text-muted-foreground">
         <Loader2 className="h-8 w-8 animate-spin mb-2" />
         <p>Loading Dashboard...</p>
       </div>
     );
-  }
 
   if (!user) return null;
 
@@ -94,14 +112,6 @@ const Dashboard = () => {
     .filter((o) => o.status === "PAID")
     .reduce((sum, o) => sum + o.totalAmount, 0);
 
-  const stats: DashboardStats = {
-    totalOrders,
-    paidOrders,
-    cancelledOrders,
-    totalRevenue,
-    paymentMethods: paymentsCount,
-  };
-
   const isAdmin = user.role === "ADMIN";
 
   return (
@@ -109,8 +119,11 @@ const Dashboard = () => {
       <Navbar cartItemsCount={0} />
 
       <div className="max-w-[1440px] mx-auto px-6 py-12">
+        {/* Header */}
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold mb-2">Dashboard</h1>
+          <h1 className="text-4xl font-bold mb-2">
+            {isAdmin ? "Admin Dashboard" : "Manager Dashboard"}
+          </h1>
           <p className="text-muted-foreground text-lg">
             Welcome back, {user.name} 👋
           </p>
@@ -124,33 +137,35 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Stat Cards */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           <StatCard
             title="Total Orders"
-            value={stats.totalOrders}
+            value={totalOrders}
             icon={<ShoppingBag className="text-primary" />}
             subtitle="All orders in your region"
           />
           <StatCard
             title="Paid Orders"
-            value={stats.paidOrders}
+            value={paidOrders}
             icon={<DollarSign className="text-green-500" />}
             subtitle="Completed transactions"
           />
           <StatCard
             title="Cancelled Orders"
-            value={stats.cancelledOrders}
+            value={cancelledOrders}
             icon={<Shield className="text-destructive" />}
             subtitle="Refunded or voided"
           />
           <StatCard
             title="Total Revenue"
-            value={`$${stats.totalRevenue.toFixed(2)}`}
+            value={`$${totalRevenue.toFixed(2)}`}
             icon={<BarChart3 className="text-accent" />}
             subtitle="From paid orders"
           />
         </div>
 
+        {/* Payment Stats */}
         <Card className="border border-border shadow-sm mb-12">
           <CardContent className="p-6 flex items-center justify-between">
             <div>
@@ -159,12 +174,14 @@ const Dashboard = () => {
                 Available methods for your country
               </p>
             </div>
-            <Badge className="text-lg px-4 py-2">{stats.paymentMethods}</Badge>
+            <Badge className="text-lg px-4 py-2">{paymentsCount}</Badge>
           </CardContent>
         </Card>
 
+        {/* Order Management */}
         <div>
           <h2 className="text-2xl font-bold mb-4">Recent Orders</h2>
+
           {orders.length === 0 ? (
             <p className="text-muted-foreground">No recent orders found.</p>
           ) : (
@@ -175,32 +192,51 @@ const Dashboard = () => {
                   className="p-5 border-border hover:shadow-md transition-all"
                 >
                   <CardContent>
-                    <h3 className="text-lg font-semibold mb-2">
-                      Order #{order._id.slice(-6)}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Status:{" "}
-                      <span
-                        className={`font-medium ${
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-semibold">
+                        #{order._id.slice(-6)}
+                      </h3>
+                      <Badge
+                        className={
                           order.status === "PAID"
-                            ? "text-green-600"
+                            ? "bg-green-500"
                             : order.status === "CANCELLED"
-                            ? "text-destructive"
-                            : "text-yellow-500"
-                        }`}
+                            ? "bg-destructive"
+                            : "bg-yellow-500"
+                        }
                       >
                         {order.status}
-                      </span>
-                    </p>
-                    <p className="text-sm mb-1">
-                      Amount:{" "}
-                      <span className="font-semibold">
-                        ${order.totalAmount.toFixed(2)}
-                      </span>
-                    </p>
-                    <p className="text-xs text-muted-foreground">
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-1">
                       {new Date(order.createdAt).toLocaleString()}
                     </p>
+                    <p className="font-semibold text-primary mb-4">
+                      ${order.totalAmount.toFixed(2)}
+                    </p>
+
+                    {order.status === "CREATED" && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="default"
+                          disabled={!!updating}
+                          onClick={() => handleUpdateStatus(order._id, "PAID")}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" /> Mark Paid
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!!updating}
+                          onClick={() =>
+                            handleUpdateStatus(order._id, "CANCELLED")
+                          }
+                        >
+                          <XCircle className="h-4 w-4 mr-1" /> Cancel
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}

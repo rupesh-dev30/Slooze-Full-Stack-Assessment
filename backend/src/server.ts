@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.routes.js";
 import restaurantRoutes from "./routes/restaurants.routes.js";
 import ordersRoutes from "./routes/orders.routes.js";
 import paymentsRoutes from "./routes/payments.routes.js";
+import cartRoutes from "./routes/cart.routes.js";
 
 import { connectDB } from "./database/db.js";
 
@@ -26,6 +27,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/orders", ordersRoutes);
 app.use("/api/payments", paymentsRoutes);
+app.use("/api/cart", cartRoutes);
 
 app.listen(PORT, () => {
   try {

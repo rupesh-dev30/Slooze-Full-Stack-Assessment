@@ -35,7 +35,6 @@ const SignInPage = () => {
       });
 
       toast.success("Signed in successfully!");
-      // await refresh();
 
       router.push("/restaurants");
     } catch {
@@ -46,7 +45,7 @@ const SignInPage = () => {
   };
 
   return (
-    <Card className="w-full max-w-md shadow-hover border border-border">
+    <Card className="w-full max-w-md shadow-hover border border-border py-6">
       <CardHeader className="text-center">
         <div className="flex justify-center mb-4">
           <div className="bg-primary p-3 rounded-lg">

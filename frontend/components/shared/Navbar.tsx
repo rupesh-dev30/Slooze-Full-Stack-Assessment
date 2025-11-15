@@ -9,26 +9,66 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
+import { api } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface NavbarProps {
-  cartItemsCount: number;
+  cartItemsCount?: number;
 }
 
-const Navbar = ({ cartItemsCount }: NavbarProps) => {
-  // TODO
-  const isAuthenticated = true;
-  const userRole = "ADMIN"; // "ADMIN" | "MANAGER" | "MEMBER"
+interface User {
+  _id: string;
+  name: string;
+  role: "ADMIN" | "MANAGER" | "MEMBER";
+  country: "INDIA" | "AMERICA";
+}
 
+const Navbar = ({ cartItemsCount = 0 }: NavbarProps) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<User["role"] | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await api("/api/auth/me");
+        if (res?.user) {
+          setIsAuthenticated(true);
+          setUserRole(res.user.role);
+        } else {
+          setIsAuthenticated(false);
+          setUserRole(null);
+        }
+      } catch {
+        setIsAuthenticated(false);
+        setUserRole(null);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await api("/api/auth/logout", { method: "POST" });
+      toast.success("Logged out successfully");
+      setIsAuthenticated(false);
+      setUserRole(null);
+      router.push("/");
+    } catch {
+      toast.error("Failed to logout");
+    }
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-border">
       <div className="max-w-[1440px] mx-auto px-4 py-2">
         <div className="flex items-center justify-between">
-          {/* Brand */}
           <Link href="/" className="flex items-center gap-2">
             <div className="bg-primary p-2.5 rounded-lg">
               <UtensilsCrossed className="h-5 w-5 text-white" />
@@ -41,7 +81,6 @@ const Navbar = ({ cartItemsCount }: NavbarProps) => {
             </div>
           </Link>
 
-          {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-2">
             {isAuthenticated ? (
               <>
@@ -80,30 +119,30 @@ const Navbar = ({ cartItemsCount }: NavbarProps) => {
                     <User className="h-5 w-5" />
                   </Button>
                 </Link>
+
                 <Button
                   variant="ghost"
                   size="icon"
                   className="p-2 text-black hover:text-white"
-                  onClick={() => {}}
+                  onClick={handleLogout}
                 >
                   <LogOut className="h-5 w-5" />
                 </Button>
               </>
             ) : (
               <>
-                <Link href="/login">
-                  <Button variant="outline" className="px-3 py-1 text-sm">
+                <Link href="/sign-in">
+                  <Button variant="outline" className="px-3 py-1 text-sm border-border">
                     Login
                   </Button>
                 </Link>
-                <Link href="/register">
+                <Link href="/sign-up">
                   <Button className="px-3 py-1 text-sm">Sign Up</Button>
                 </Link>
               </>
             )}
           </div>
 
-          {/* Mobile Menu Toggle */}
           <div className="md:hidden">
             <Button
               variant="ghost"
@@ -121,7 +160,6 @@ const Navbar = ({ cartItemsCount }: NavbarProps) => {
         </div>
       </div>
 
-      {/* Mobile Dropdown */}
       <div
         className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out border-t border-border bg-background ${
           isMenuOpen ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
@@ -184,19 +222,19 @@ const Navbar = ({ cartItemsCount }: NavbarProps) => {
               <Button
                 variant="ghost"
                 className="w-full justify-start text-sm text-red-500 hover:text-red-600 py-2"
-                onClick={() => {}}
+                onClick={handleLogout}
               >
-                <LogOut className="h-4 w-4 mr-2 text-3xl" /> Logout
+                <LogOut className="h-4 w-4 mr-2" /> Logout
               </Button>
             </>
           ) : (
             <>
-              <Link href="/login" className="w-full">
+              <Link href="/sign-in" className="w-full">
                 <Button variant="outline" className="w-full text-sm py-2">
                   Login
                 </Button>
               </Link>
-              <Link href="/register" className="w-full">
+              <Link href="/sign-up" className="w-full">
                 <Button className="w-full text-sm py-2">Sign Up</Button>
               </Link>
             </>

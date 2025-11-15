@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -41,6 +42,11 @@ interface Restaurant {
   description?: string;
 }
 
+interface CartItem {
+  menuItemId: string;
+  quantity: number;
+}
+
 const RestaurantDetail = () => {
   const { id } = useParams();
   const router = useRouter();
@@ -49,41 +55,120 @@ const RestaurantDetail = () => {
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [cartItems, setCartItems] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // 🧠 Load restaurant + cart + auth status
   useEffect(() => {
-    const fetchRestaurantData = async () => {
+    const fetchData = async () => {
       if (!id) return;
+
       try {
-        const data = await api(`/api/restaurants/${id}/menu`);
-        setRestaurant(data.restaurant);
-        setMenu(data.menu);
+        // ✅ Public restaurant info
+        const restaurantRes = await api(`/api/restaurants/${id}/menu`);
+        setRestaurant(restaurantRes.restaurant);
+        setMenu(restaurantRes.menu);
+
+        // ✅ Try fetching cart only if logged in
+        try {
+          const cartRes = await api("/api/cart");
+          const cart = cartRes.cart;
+          if (cart && cart.items) {
+            const mapped = cart.items.reduce(
+              (acc: Record<string, number>, item: CartItem) => {
+                acc[item.menuItemId] = item.quantity;
+                return acc;
+              },
+              {}
+            );
+            setCartItems(mapped);
+          }
+        } catch (err: any) {
+          const msg =
+            typeof err === "string"
+              ? err
+              : err?.message || err?.toString() || "";
+          if (msg.includes("Unauthorized") || msg.includes("401")) {
+            setCartItems({});
+          } else {
+            console.error("Cart load failed:", err);
+          }
+        }
+
+        // ✅ Check if user is logged in (non-blocking)
+        api("/api/auth/me")
+          .then((res) => {
+            if (res?.user) setIsAuthenticated(true);
+          })
+          .catch(() => setIsAuthenticated(false));
       } catch (error) {
-        console.error("Failed to fetch restaurant:", error);
+        console.error("Failed to load:", error);
         toast.error("Unable to load restaurant details.");
         router.push("/restaurants");
       } finally {
         setLoading(false);
       }
     };
-    fetchRestaurantData();
+
+    fetchData();
   }, [id, router]);
 
-  const addToCart = (itemId: string) => {
-    setCartItems((prev) => ({
-      ...prev,
-      [itemId]: (prev[itemId] || 0) + 1,
-    }));
-    toast.success("Added to cart");
+  const addToCart = async (menuItemId: string) => {
+    try {
+      const res = await api("/api/auth/me");
+      if (!res?.user) {
+        toast.error("Please sign in to add items to cart");
+        router.push("/sign-in");
+        return;
+      }
+
+      await api("/api/cart", {
+        method: "POST",
+        body: JSON.stringify({ menuItemId, quantity: 1 }),
+      });
+
+      setCartItems((prev) => ({
+        ...prev,
+        [menuItemId]: (prev[menuItemId] || 0) + 1,
+      }));
+
+      toast.success("Added to cart");
+    } catch (error: any) {
+      const msg =
+        typeof error === "string"
+          ? error
+          : error?.message || error?.toString() || "";
+      if (msg.includes("Unauthorized") || msg.includes("401")) {
+        toast.error("Please sign in to add items to cart");
+        router.push("/sign-in");
+      } else {
+        toast.error("Failed to add to cart");
+        console.error(error);
+      }
+    }
   };
 
-  const removeFromCart = (itemId: string) => {
-    setCartItems((prev) => {
-      const updated = { ...prev };
-      if (updated[itemId] > 1) updated[itemId]--;
-      else delete updated[itemId];
-      return updated;
-    });
-    toast.success("Removed from cart");
+  const removeFromCart = async (menuItemId: string) => {
+    try {
+      const currentQty = cartItems[menuItemId];
+      if (currentQty > 1) {
+        await api("/api/cart", {
+          method: "PUT",
+          body: JSON.stringify({ menuItemId, quantity: currentQty - 1 }),
+        });
+        setCartItems((prev) => ({ ...prev, [menuItemId]: currentQty - 1 }));
+      } else {
+        await api(`/api/cart/${menuItemId}`, { method: "DELETE" });
+        setCartItems((prev) => {
+          const updated = { ...prev };
+          delete updated[menuItemId];
+          return updated;
+        });
+      }
+      toast.success("Cart updated");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update cart");
+    }
   };
 
   const getTotalItems = () =>
@@ -111,14 +196,12 @@ const RestaurantDetail = () => {
   }
 
   const imageSrc = restaurant.country === "AMERICA" ? americanImg : indianImg;
-
   const categories = [...new Set(menu.map((item) => item.category))];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar cartItemsCount={getTotalItems()} />
 
-      {/* Hero Section */}
       <div className="relative h-64 md:h-80 overflow-hidden">
         <Image
           src={imageSrc}
@@ -129,9 +212,7 @@ const RestaurantDetail = () => {
         <div className="absolute inset-0 bg-linear-to-t from-background/95 via-background/50 to-transparent" />
       </div>
 
-      {/* Content Section */}
       <div className="max-w-[1440px] mx-auto px-6 -mt-24 relative z-10 pb-16">
-        {/* Restaurant Info */}
         <Card className="p-6 shadow-hover border border-border bg-card/90 backdrop-blur-md mb-10">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
             <div>
@@ -155,18 +236,16 @@ const RestaurantDetail = () => {
               </div>
             </div>
             <Badge className="text-md px-4 py-2 capitalize">
-              {restaurant.description ?? "Multi Cuisine"}
+              {restaurant.cuisine ?? "Multi Cuisine"}
             </Badge>
           </div>
         </Card>
 
-        {/* Menu Items */}
         {categories.map((category) => (
           <div key={category} className="mb-12">
             <h2 className="text-2xl font-bold mb-5 text-primary border-l-4 border-primary pl-3">
               {category}
             </h2>
-
             <div className="grid md:grid-cols-2 gap-6">
               {menu
                 .filter((item) => item.category === category)
@@ -187,9 +266,7 @@ const RestaurantDetail = () => {
                             ${item.price.toFixed(2)}
                           </p>
                         </div>
-                        <Badge className="capitalize">
-                          {item.category}
-                        </Badge>
+                        <Badge className="capitalize">{item.category}</Badge>
                       </div>
 
                       {item.isAvailable ? (
@@ -204,39 +281,49 @@ const RestaurantDetail = () => {
                       )}
 
                       {item.isAvailable ? (
-                        cartItems[item._id] ? (
-                          <div className="flex items-center gap-3">
+                        isAuthenticated ? (
+                          cartItems[item._id] ? (
+                            <div className="flex items-center gap-3">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => removeFromCart(item._id)}
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
+                              <span className="font-medium w-8 text-center">
+                                {cartItems[item._id]}
+                              </span>
+                              <Button
+                                size="icon"
+                                variant="default"
+                                onClick={() => addToCart(item._id)}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : (
                             <Button
-                              size="icon"
-                              variant="outline"
-                              onClick={() => removeFromCart(item._id)}
-                            >
-                              <Minus className="h-4 w-4" />
-                            </Button>
-                            <span className="font-medium w-8 text-center">
-                              {cartItems[item._id]}
-                            </span>
-                            <Button
-                              size="icon"
-                              variant="default"
+                              className="w-full mt-1"
                               onClick={() => addToCart(item._id)}
                             >
-                              <Plus className="h-4 w-4" />
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add to Cart
                             </Button>
-                          </div>
+                          )
                         ) : (
                           <Button
                             className="w-full mt-1"
-                            onClick={() => addToCart(item._id)}
+                            variant="outline"
+                            onClick={() => router.push("/sign-in")}
                           >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add to Cart
+                            Login to Add
                           </Button>
                         )
                       ) : (
                         <Button
-                          className="w-full mt-1"
                           disabled
+                          className="w-full mt-1"
                           variant="outline"
                         >
                           Unavailable
@@ -249,8 +336,7 @@ const RestaurantDetail = () => {
           </div>
         ))}
 
-        {/* Floating Cart Button */}
-        {getTotalItems() > 0 && (
+        {isAuthenticated && getTotalItems() > 0 && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
             <Link href="/cart">
               <Button

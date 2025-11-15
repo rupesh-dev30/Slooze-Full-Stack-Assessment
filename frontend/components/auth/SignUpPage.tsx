@@ -63,7 +63,7 @@ const SignUpPage = () => {
   };
 
   return (
-    <Card className="w-full max-w-md shadow-hover border border-border">
+    <Card className="w-full max-w-md shadow-hover border border-border py-6">
       <CardHeader className="text-center">
         <div className="flex justify-center mb-4">
           <div className="bg-primary p-3 rounded-lg">
@@ -134,7 +134,7 @@ const SignUpPage = () => {
 
         <div className="mt-3 text-center text-sm">
           Already have an account?{" "}
-          <Link href={"/sign-up"} className="text-primary hover:underline">
+          <Link href={"/sign-in"} className="text-primary hover:underline">
             Sign In
           </Link>
         </div>
