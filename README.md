@@ -251,7 +251,11 @@ Your seed script automatically creates:
 
 | Login                             | Restaurants                                   | Cart                            | Orders                              |
 | --------------------------------- | --------------------------------------------- | ------------------------------- | ----------------------------------- |
-| ![Login](./screenshots/sign-in.png) | ![Restaurants](./screenshots/restaurants.png) | ![Cart](./screenshots/cart.png) | ![Orders](./screenshots/orders.png) |
+| ![Login](./screenshots/sign-in.png) | ![Restaurants](./screenshots/restaurant.png) | ![Cart](./screenshots/cart.png) | ![Orders](./screenshots/orders.png) |
+
+| Restaurants-Details                                        | Payment                                   | Profile                         |
+| -----------------------------------------------------------| ----------------------------------------- | ------------------------------- |
+| ![Restaurant-detail](./screenshots/restaurant-details.png) | ![Restaurants](./screenshots/payment.png) | ![Cart](./screenshots/profile.png) |
 
 ---
 
