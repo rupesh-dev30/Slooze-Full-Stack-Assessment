@@ -36,9 +36,11 @@ interface Order {
 
 const Dashboard = () => {
   const router = useRouter();
+
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [paymentsCount, setPaymentsCount] = useState(0);
+  const [cartCount, setCartCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
 
@@ -52,13 +54,29 @@ const Dashboard = () => {
           router.push("/");
           return;
         }
+
         setUser(user);
 
-        const ordersData = await api("/api/orders");
-        const paymentsData = await api("/api/payments");
+        const [ordersData, paymentsData] = await Promise.all([
+          api("/api/orders"),
+          api("/api/payments"),
+        ]);
 
         setOrders(ordersData.orders || []);
         setPaymentsCount(paymentsData?.methods?.length || 0);
+
+        try {
+          const cartRes = await api("/api/cart");
+          const totalCount =
+            cartRes.cart?.items?.reduce(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (sum: number, item: any) => sum + item.quantity,
+              0
+            ) || 0;
+          setCartCount(totalCount);
+        } catch {
+          setCartCount(0);
+        }
       } catch (error) {
         console.error(error);
         toast.error("Failed to load dashboard data.");
@@ -116,10 +134,9 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Navbar cartItemsCount={0} />
+      <Navbar cartItemsCount={cartCount} />
 
       <div className="max-w-[1440px] mx-auto px-6 py-12">
-        {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-2">
             {isAdmin ? "Admin Dashboard" : "Manager Dashboard"}
@@ -137,7 +154,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Stat Cards */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           <StatCard
             title="Total Orders"
@@ -165,7 +181,6 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* Payment Stats */}
         <Card className="border border-border shadow-sm mb-12">
           <CardContent className="p-6 flex items-center justify-between">
             <div>
@@ -178,7 +193,6 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Order Management */}
         <div>
           <h2 className="text-2xl font-bold mb-4">Recent Orders</h2>
 

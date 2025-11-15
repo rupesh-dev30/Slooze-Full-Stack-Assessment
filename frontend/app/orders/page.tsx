@@ -29,20 +29,39 @@ interface Order {
 const OrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cartCount, setCartCount] = useState(0);
   const router = useRouter();
 
+  // ✅ Fetch orders and cart count
   useEffect(() => {
-    const fetchOrders = async () => {
+    const fetchData = async () => {
       try {
+        // 1️⃣ Fetch orders (protected route)
         const res = await api("/api/orders");
         setOrders(res.orders);
+
+        // 2️⃣ Fetch cart count (only if authenticated)
+        try {
+          const userRes = await api("/api/auth/me");
+          if (userRes.user) {
+            const cartRes = await api("/api/cart");
+            const totalCount = cartRes.cart?.items?.reduce(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (sum: number, i: any) => sum + i.quantity,
+              0
+            );
+            setCartCount(totalCount || 0);
+          }
+        } catch {
+          setCartCount(0); // not logged in or cart empty
+        }
       } catch {
         toast.error("Failed to load your orders");
       } finally {
         setLoading(false);
       }
     };
-    fetchOrders();
+    fetchData();
   }, []);
 
   const handleCancelOrder = async (orderId: string) => {
@@ -82,7 +101,8 @@ const OrdersPage = () => {
   if (orders.length === 0)
     return (
       <div className="min-h-screen bg-background">
-        <Navbar cartItemsCount={3} />
+        {/* ✅ Dynamic cart count */}
+        <Navbar cartItemsCount={cartCount} />
         <div className="flex flex-col items-center justify-center h-screen text-muted-foreground">
           <Package className="h-8 w-8 mb-2 text-muted-foreground" />
           <p>No orders found.</p>
@@ -92,14 +112,18 @@ const OrdersPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar cartItemsCount={3}/>
+      {/* ✅ Dynamic cart count */}
+      <Navbar cartItemsCount={cartCount} />
 
       <div className="max-w-[1440px] px-6 mx-auto py-8">
         <h1 className="text-4xl font-bold mb-8 text-primary">My Orders</h1>
 
         <div className="space-y-4">
           {orders.map((order) => (
-            <Card key={order._id} className="hover:shadow-card border-border transition-all">
+            <Card
+              key={order._id}
+              className="hover:shadow-card border-border transition-all"
+            >
               <CardContent className="p-6">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   {/* LEFT SIDE */}

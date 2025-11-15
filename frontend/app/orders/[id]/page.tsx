@@ -38,10 +38,10 @@ const OrderDetailPage = () => {
 
   const [order, setOrder] = useState<Order | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [cartCount, setCartCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
 
-  // Load order and user
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -50,6 +50,21 @@ const OrderDetailPage = () => {
 
         const orderRes = await api(`/api/orders/${id}`);
         setOrder(orderRes.order);
+
+        if (userRes.user) {
+          try {
+            const cartRes = await api("/api/cart");
+            const cartItems = cartRes.cart?.items ?? [];
+            const totalCount = cartItems.reduce(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (sum: number, item: any) => sum + item.quantity,
+              0
+            );
+            setCartCount(totalCount);
+          } catch {
+            setCartCount(0);
+          }
+        }
       } catch (error) {
         console.error(error);
         toast.error("Failed to load order details");
@@ -69,6 +84,7 @@ const OrderDetailPage = () => {
         newStatus === "PAID"
           ? `/api/orders/${order._id}/checkout`
           : `/api/orders/${order._id}/cancel`;
+
       await api(endpoint, { method: "POST" });
 
       setOrder({ ...order, status: newStatus });
@@ -101,7 +117,7 @@ const OrderDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Navbar cartItemsCount={0} />
+      <Navbar cartItemsCount={cartCount} />
 
       <div className="max-w-4xl mx-auto px-6 py-10">
         <h1 className="text-3xl font-bold mb-6">Order Details</h1>
