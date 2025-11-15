@@ -11,9 +11,8 @@ import heroImage from "@/assets/hero-food.jpg";
 const App = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
+      <Navbar cartItemsCount={3} />
 
-      {/* 🏠 Hero Section */}
       <section className="relative flex items-center justify-center overflow-hidden h-[650px] sm:h-[700px]">
         <div className="absolute inset-0">
           <Image
@@ -26,7 +25,6 @@ const App = () => {
           <div className="absolute inset-0 bg-linear-to-r from-black/90 via-black/80 to-black/70" />
         </div>
 
-        {/* Hero Content */}
         <div className="relative z-10 text-center text-white px-6 sm:px-8 max-w-[900px] mx-auto">
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-6 leading-tight tracking-tight">
             Delicious Food, <br className="hidden sm:block" />
@@ -59,7 +57,6 @@ const App = () => {
         </div>
       </section>
 
-      {/* ⚡ Features Section */}
       <section className="py-20 md:py-24 bg-muted/30">
         <div className="max-w-[1440px] mx-auto px-4">
           <div className="text-center mb-14">
@@ -111,7 +108,6 @@ const App = () => {
         </div>
       </section>
 
-      {/* 🍽️ CTA Section */}
       <section className="py-20 bg-linear-to-r from-primary to-accent text-white text-center">
         <div className="max-w-[1440px] mx-auto px-6 sm:px-10">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -131,7 +127,6 @@ const App = () => {
         </div>
       </section>
 
-      {/* 🧾 Footer */}
       <footer className="bg-foreground text-background py-8 text-center mt-auto">
         <div className="max-w-[1440px] mx-auto px-6 sm:px-10">
           <p className="text-sm opacity-90">

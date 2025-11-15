@@ -13,11 +13,14 @@ import React, { useState } from "react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 
-const Navbar = () => {
+interface NavbarProps {
+  cartItemsCount: number;
+}
+
+const Navbar = ({ cartItemsCount }: NavbarProps) => {
   // TODO
   const isAuthenticated = true;
   const userRole = "ADMIN"; // "ADMIN" | "MANAGER" | "MEMBER"
-  const cartItemsCount = 3;
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
