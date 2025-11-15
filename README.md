@@ -279,5 +279,3 @@ Your seed script automatically creates:
 ## 📜 License
 
 This project is open-sourced under the **MIT License**.
-
-```
