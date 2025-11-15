@@ -247,6 +247,13 @@ Your seed script automatically creates:
 
 ---
 
+## 🎥 Live Demo
+
+🎬 **Watch the demo video here:**  
+[▶️ Click to Watch on Google Drive](https://drive.google.com/file/d/1Zo3FZBBfQANBKBlFeTdjhQEIRDtpdDcn/view?usp=drive_link)
+
+---
+
 ## 🖼️ Screenshots
 
 | Login                             | Restaurants                                   | Cart                            | Orders                              |
